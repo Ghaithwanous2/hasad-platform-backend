@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'accounts',
 ]
 
@@ -134,3 +135,22 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL="accounts.User"
+
+
+AUTHENTICATION_BACKENDS = [
+    "accounts.backends.IdentifierBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+SIMPLE_JWT = {
+    "USER_ID_FIELD": "account_id",
+    "USER_ID_CLAIM": "account_id",
+}
