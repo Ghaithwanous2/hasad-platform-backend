@@ -1,5 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework import serializers
+from .models import User
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
 )
@@ -38,3 +40,24 @@ class IdentifierTokenObtainPairSerializer(
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
+
+
+
+
+
+
+
+class UserMeSerializer(serializers.ModelSerializer):
+    full_name = serializers.ReadOnlyField()
+
+    class Meta:
+        model = User
+        fields = (
+            "account_id",
+            "email",
+            "phone",
+            "first_name",
+            "last_name",
+            "full_name",
+            "role",
+        )
