@@ -5,6 +5,8 @@ from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 
 from .managers import UserManager
+from django.utils import timezone
+
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -91,3 +93,43 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
+
+
+class EmailVerification(models.Model):
+    verification_id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="email_verifications",
+    )
+
+    code_hash = models.CharField(
+        max_length=128,
+    )
+
+    expires_at = models.DateTimeField()
+
+    attempts = models.PositiveSmallIntegerField(
+        default=0,
+    )
+
+    last_sent_at = models.DateTimeField(
+        default=timezone.now,
+    )
+
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    def __str__(self):
+        return f"Email verification for {self.user}"
