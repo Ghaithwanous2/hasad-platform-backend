@@ -1,0 +1,364 @@
+openapi: 3.0.3
+info:
+  title: Hasad Platform API
+  version: 1.0.0
+  description: REST API for Hasad Platform
+paths:
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IdentifierTokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IdentifierTokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IdentifierTokenObtainPair'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdentifierTokenObtainPair'
+          description: ''
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: Returns the profile of the user associated with the access token.
+      summary: Get the current authenticated user
+      tags:
+      - Authentication
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserMe'
+          description: ''
+  /api/v1/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenRefresh'
+        required: true
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: Creates a new farmer or trader account and sends an email verification
+        code.
+      summary: Register a farmer or trader
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+          description: ''
+  /api/v1/auth/register/resend/:
+    post:
+      operationId: auth_register_resend_create
+      description: Sends a new email verification code to the user's email address.
+      summary: Resend email verification code
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendEmailVerification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResendEmailVerification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResendEmailVerification'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResendEmailVerificationResponse'
+          description: ''
+  /api/v1/auth/register/verify/:
+    post:
+      operationId: auth_register_verify_create
+      description: Verifies the email code, activates the account, and returns JWT
+        access and refresh tokens.
+      summary: Verify email and sign in
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmailResponse'
+          description: ''
+components:
+  schemas:
+    AccountTypeEnum:
+      enum:
+      - FARMER
+      - TRADER
+      type: string
+      description: |-
+        * `FARMER` - Farmer
+        * `TRADER` - Trader
+    AuthenticationTokens:
+      type: object
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    IdentifierTokenObtainPair:
+      type: object
+      properties:
+        identifier:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - identifier
+      - password
+    Register:
+      type: object
+      properties:
+        account_type:
+          $ref: '#/components/schemas/AccountTypeEnum'
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+          maxLength: 30
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        password_confirm:
+          type: string
+          writeOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+      required:
+      - account_type
+      - email
+      - password
+      - password_confirm
+    RegisterResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        verification_id:
+          type: string
+          format: uuid
+        account_id:
+          type: string
+          format: uuid
+      required:
+      - account_id
+      - message
+      - verification_id
+    ResendEmailVerification:
+      type: object
+      properties:
+        verification_id:
+          type: string
+          format: uuid
+      required:
+      - verification_id
+    ResendEmailVerificationResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    RoleEnum:
+      enum:
+      - ADMIN
+      - QUALITY_MANAGER
+      - DELIVERY_MANAGER
+      - WAREHOUSE_MANAGER
+      - WAREHOUSE_STAFF
+      - FARMER
+      - TRADER
+      - DRIVER
+      - INSPECTOR
+      type: string
+      description: |-
+        * `ADMIN` - Administrator
+        * `QUALITY_MANAGER` - Quality Manager
+        * `DELIVERY_MANAGER` - Delivery Manager
+        * `WAREHOUSE_MANAGER` - Warehouse Manager
+        * `WAREHOUSE_STAFF` - Warehouse Staff
+        * `FARMER` - Farmer
+        * `TRADER` - Trader
+        * `DRIVER` - Driver
+        * `INSPECTOR` - Neutral Inspector
+    TokenRefresh:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        refresh:
+          type: string
+          writeOnly: true
+      required:
+      - access
+      - refresh
+    UserMe:
+      type: object
+      properties:
+        account_id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          nullable: true
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        phone:
+          type: string
+          nullable: true
+          maxLength: 30
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        full_name:
+          type: string
+          readOnly: true
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+      required:
+      - account_id
+      - full_name
+    VerifyEmail:
+      type: object
+      properties:
+        verification_id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          writeOnly: true
+          maxLength: 6
+          minLength: 6
+      required:
+      - code
+      - verification_id
+    VerifyEmailResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserMe'
+        tokens:
+          $ref: '#/components/schemas/AuthenticationTokens'
+      required:
+      - message
+      - tokens
+      - user
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

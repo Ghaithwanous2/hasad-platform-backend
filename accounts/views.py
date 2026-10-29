@@ -1,4 +1,5 @@
 
+from rest_framework import serializers
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -14,10 +15,31 @@ from .serializers import (
 
 from rest_framework.permissions import AllowAny
 
+from drf_spectacular.utils import extend_schema,inline_serializer
 
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+
+    @extend_schema(
+    request=RegisterSerializer,
+    responses={
+        201: inline_serializer(
+            name="RegisterResponse",
+            fields={
+                "message": serializers.CharField(),
+                "verification_id": serializers.UUIDField(),
+                "account_id": serializers.UUIDField(),
+            },
+        ),
+    },
+    tags=["Authentication"],
+    summary="Register a farmer or trader",
+    description=(
+        "Creates a new farmer or trader account "
+        "and sends an email verification code."
+    ),
+)
 
     def post(self, request):
         serializer = RegisterSerializer(
@@ -42,7 +64,6 @@ class RegisterView(APIView):
         )
 
 
-
 class IdentifierTokenObtainPairView(TokenObtainPairView):
     serializer_class = IdentifierTokenObtainPairSerializer
 
@@ -57,10 +78,18 @@ from rest_framework.response import Response
 
 from .serializers import UserMeSerializer
 
-
 class CurrentUserView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=UserMeSerializer,
+        tags=["Authentication"],
+        summary="Get the current authenticated user",
+        description=(
+            "Returns the profile of the user associated "
+            "with the access token."
+        ),
+    )
     def get(self, request):
         serializer = UserMeSerializer(request.user)
         return Response(serializer.data)
@@ -69,6 +98,31 @@ class CurrentUserView(APIView):
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=VerifyEmailSerializer,
+        responses={
+            200: inline_serializer(
+                name="VerifyEmailResponse",
+                fields={
+                    "message": serializers.CharField(),
+                    "user": UserMeSerializer(),
+                    "tokens": inline_serializer(
+                        name="AuthenticationTokens",
+                        fields={
+                            "access": serializers.CharField(),
+                            "refresh": serializers.CharField(),
+                        },
+                    ),
+                },
+            ),
+        },
+        tags=["Authentication"],
+        summary="Verify email and sign in",
+        description=(
+            "Verifies the email code, activates the account, "
+            "and returns JWT access and refresh tokens."
+        ),
+    )
     def post(self, request):
         serializer = VerifyEmailSerializer(
             data=request.data,
@@ -100,9 +154,28 @@ class VerifyEmailView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
 class ResendEmailVerificationView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=ResendEmailVerificationSerializer,
+        responses={
+            200: inline_serializer(
+                name="ResendEmailVerificationResponse",
+                fields={
+                    "message": serializers.CharField(),
+                },
+            ),
+        },
+        tags=["Authentication"],
+        summary="Resend email verification code",
+        description=(
+            "Sends a new email verification code "
+            "to the user's email address."
+        ),
+    )
     def post(self, request):
         serializer = ResendEmailVerificationSerializer(
             data=request.data,
@@ -119,3 +192,4 @@ class ResendEmailVerificationView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+

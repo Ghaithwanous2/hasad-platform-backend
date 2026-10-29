@@ -1,5 +1,6 @@
+import requests
+
 from django.conf import settings
-from django.core.mail import send_mail
 
 
 def send_email_verification_code(
@@ -14,10 +15,31 @@ def send_email_verification_code(
         "صلاحية الرمز خمس دقائق."
     )
 
-    return send_mail(
-        subject=subject,
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[recipient_email],
-        fail_silently=False,
+    payload = {
+        "sender": {
+            "email": settings.DEFAULT_FROM_EMAIL,
+            "name": "منصة حصاد",
+        },
+        "to": [
+            {
+                "email": recipient_email,
+            }
+        ],
+        "subject": subject,
+        "textContent": message,
+    }
+
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={
+            "accept": "application/json",
+            "api-key": settings.BREVO_API_KEY,
+            "content-type": "application/json",
+        },
+        json=payload,
+        timeout=15,
     )
+
+    response.raise_for_status()
+
+    return 1
