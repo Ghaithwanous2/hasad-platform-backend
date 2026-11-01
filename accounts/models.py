@@ -12,6 +12,8 @@ from django.utils import timezone
 class User(AbstractBaseUser, PermissionsMixin):
     class Role(models.TextChoices):
         ADMIN = "ADMIN", "Administrator"
+        OPERATIONS_STAFF = "OPERATIONS_STAFF", "Operations Staff"
+        AUDITOR = "AUDITOR", "Auditor"
         QUALITY_MANAGER = "QUALITY_MANAGER", "Quality Manager"
         DELIVERY_MANAGER = "DELIVERY_MANAGER", "Delivery Manager"
         WAREHOUSE_MANAGER = "WAREHOUSE_MANAGER", "Warehouse Manager"
