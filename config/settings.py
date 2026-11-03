@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'accounts',
     'drf_spectacular',
+    'operations',
 ]
 
 
