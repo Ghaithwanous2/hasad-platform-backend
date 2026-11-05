@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from typing import Final
@@ -56,17 +55,21 @@ PUBLIC_MARKET: Final = "PUBLIC_MARKET"
 # Handover and inspection constants
 # ---------------------------------------------------------------------------
 
-HANDOVER_PICKUP: Final = "PICKUP"
-HANDOVER_RECEIVING: Final = "RECEIVING"
-HANDOVER_WAREHOUSE_RELEASE: Final = "WAREHOUSE_RELEASE"
-HANDOVER_DISPUTE_INSPECTION: Final = "DISPUTE_INSPECTION"
+HANDOVER_FARMER_TO_DRIVER: Final = "FARMER_TO_DRIVER"
+HANDOVER_FARMER_TO_TRADER: Final = "FARMER_TO_TRADER"
+HANDOVER_DRIVER_TO_WAREHOUSE: Final = "DRIVER_TO_WAREHOUSE"
+HANDOVER_WAREHOUSE_TO_DRIVER: Final = "WAREHOUSE_TO_DRIVER"
+HANDOVER_WAREHOUSE_TO_TRADER: Final = "WAREHOUSE_TO_TRADER"
+HANDOVER_DRIVER_TO_TRADER: Final = "DRIVER_TO_TRADER"
 
 HANDOVER_TYPES: Final[frozenset[str]] = frozenset(
     {
-        HANDOVER_PICKUP,
-        HANDOVER_RECEIVING,
-        HANDOVER_WAREHOUSE_RELEASE,
-        HANDOVER_DISPUTE_INSPECTION,
+        HANDOVER_FARMER_TO_DRIVER,
+        HANDOVER_FARMER_TO_TRADER,
+        HANDOVER_DRIVER_TO_WAREHOUSE,
+        HANDOVER_WAREHOUSE_TO_DRIVER,
+        HANDOVER_WAREHOUSE_TO_TRADER,
+        HANDOVER_DRIVER_TO_TRADER,
     }
 )
 
@@ -193,7 +196,23 @@ PERMISSIONS: Final[dict[str, dict[str, object]]] = {
     },
     "delivery.reassign_task": {"roles": {DELIVERY_MANAGER}, "scope": COMPANY},
 
-    # Requesting an inspector is not the same as assigning one.
+    # Creating a handover is separate from assigning its neutral inspector.
+    "handover.create_system": {
+        "roles": {ADMIN, OPERATIONS_STAFF, DELIVERY_MANAGER},
+        "scope": CONTEXTUAL,
+    },
+    "handover.create_farmer_origin": {
+        "roles": {FARMER},
+        "scope": OWN_RECORDS,
+    },
+    "handover.create_trader_destination": {
+        "roles": {TRADER},
+        "scope": OWN_RECORDS,
+    },
+    "handover.create_warehouse_point": {
+        "roles": {WAREHOUSE_MANAGER, WAREHOUSE_STAFF},
+        "scope": WAREHOUSE,
+    },
     "handover.request_neutral_inspector": {
         "roles": {
             OPERATIONS_STAFF,
@@ -255,12 +274,9 @@ PERMISSIONS: Final[dict[str, dict[str, object]]] = {
         "scope": WAREHOUSE,
     },
     "storage.verify_receiving": {
-    "roles": {
-        "INSPECTOR",
+        "roles": {INSPECTOR},
+        "scope": ASSIGNED_HANDOVERS,
     },
-    "scope": "ASSIGNED_HANDOVERS",
-    },
-
     "storage.internal_move": {
         "roles": {WAREHOUSE_MANAGER, WAREHOUSE_STAFF},
         "scope": WAREHOUSE,
@@ -350,14 +366,14 @@ def validate_permission_catalog() -> list[str]:
 # These are business invariants, not role grants. Enforce them in services.
 NEUTRAL_OBSERVER_RULES: Final[dict[str, object]] = {
     "assignment_target": "HANDOVER_POINT",
-    "default_points": [HANDOVER_PICKUP, HANDOVER_RECEIVING],
+    "default_points": "PATH_DEPENDENT",
+    "one_inspector_per_physical_handover": True,
     "different_inspector_per_point_by_default": True,
     "same_inspector_exception_requires_admin_reason": True,
     "inspector_must_have_role": INSPECTOR,
     "inspector_must_be_active": True,
     "inspector_must_be_available": True,
     "conflict_of_interest_is_forbidden": True,
-    "inspector_cannot_be_driver_on_same_delivery": True,
     "inspector_cannot_be_farmer_or_trader_party": True,
     "inspector_can_record_facts_only": True,
     "inspector_cannot_decide_dispute": True,

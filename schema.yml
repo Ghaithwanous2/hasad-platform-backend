@@ -171,6 +171,85 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerifyEmailResponse'
           description: ''
+  /api/v1/operations/handovers/{handover_id}/assign-inspector/:
+    post:
+      operationId: operations_handovers_assign_inspector_create
+      description: ينفذ ADMIN الإسناد النهائي لمراقب INSPECTOR إلى انتقال حيازة محدد،
+        وليس إلى مهمة التوصيل كاملة.
+      summary: إسناد مراقب محايد لنقطة انتقال
+      parameters:
+      - in: path
+        name: handover_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Handovers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignInspector'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AssignInspector'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssignInspector'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectorAssignment'
+          description: ''
+        '400':
+          description: بيانات الإسناد غير صالحة.
+        '403':
+          description: لا يملك المستخدم الصلاحية.
+        '404':
+          description: نقطة الانتقال غير موجودة.
+  /api/v1/operations/handovers/create/:
+    post:
+      operationId: operations_handovers_create_create
+      description: ينشئ انتقال حيازة واحداً. ينشئ كل طرف النقطة الموجودة في موقعه،
+        ثم يتم إسناد المراقب المحايد بعملية منفصلة.
+      summary: إنشاء نقطة انتقال حيازة
+      tags:
+      - Handovers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateHandover'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateHandover'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateHandover'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Handover'
+          description: ''
+        '400':
+          description: بيانات الانتقال غير صالحة.
+        '403':
+          description: لا يملك المستخدم الصلاحية.
+        '404':
+          description: مهمة التوصيل غير موجودة.
 components:
   schemas:
     AccountTypeEnum:
@@ -181,6 +260,20 @@ components:
       description: |-
         * `FARMER` - Farmer
         * `TRADER` - Trader
+    AssignInspector:
+      type: object
+      properties:
+        inspector_id:
+          type: string
+          format: uuid
+          description: UUID of the active INSPECTOR account.
+        exception_reason:
+          type: string
+          description: Required when the same inspector is already assigned to another
+            handover in this delivery.
+          maxLength: 1000
+      required:
+      - inspector_id
     AuthenticationTokens:
       type: object
       properties:
@@ -191,6 +284,157 @@ components:
       required:
       - access
       - refresh
+    CreateHandover:
+      type: object
+      properties:
+        point_type:
+          $ref: '#/components/schemas/PointTypeEnum'
+        sequence:
+          type: integer
+          minimum: 1
+        batch_reference:
+          type: string
+          maxLength: 80
+        delivery_task_id:
+          type: string
+          format: uuid
+          nullable: true
+        from_party_type:
+          $ref: '#/components/schemas/FromPartyTypeEnum'
+        from_party_id:
+          type: string
+          format: uuid
+        to_party_type:
+          $ref: '#/components/schemas/ToPartyTypeEnum'
+        to_party_id:
+          type: string
+          format: uuid
+        location_address:
+          type: string
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - batch_reference
+      - from_party_id
+      - from_party_type
+      - location_address
+      - point_type
+      - sequence
+      - to_party_id
+      - to_party_type
+    FromPartyTypeEnum:
+      enum:
+      - FARMER
+      - TRADER
+      - DRIVER
+      - WAREHOUSE
+      type: string
+      description: |-
+        * `FARMER` - المزارع
+        * `TRADER` - التاجر
+        * `DRIVER` - السائق
+        * `WAREHOUSE` - المستودع
+    Handover:
+      type: object
+      properties:
+        handover_id:
+          type: string
+          format: uuid
+          readOnly: true
+        delivery_task:
+          type: string
+          format: uuid
+          nullable: true
+        batch_reference:
+          type: string
+          maxLength: 80
+        point_type:
+          $ref: '#/components/schemas/PointTypeEnum'
+        sequence:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        from_party_type:
+          $ref: '#/components/schemas/FromPartyTypeEnum'
+        from_party_id:
+          type: string
+          format: uuid
+          nullable: true
+        to_party_type:
+          $ref: '#/components/schemas/ToPartyTypeEnum'
+        to_party_id:
+          type: string
+          format: uuid
+          nullable: true
+        location_address:
+          type: string
+        latitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+        longitude:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,6})?$
+          nullable: true
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/HandoverStatusEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - batch_reference
+      - created_at
+      - from_party_type
+      - handover_id
+      - location_address
+      - point_type
+      - sequence
+      - status
+      - to_party_type
+      - updated_at
+    HandoverStatusEnum:
+      enum:
+      - AWAITING_INSPECTOR
+      - INSPECTOR_ASSIGNED
+      - INSPECTOR_ACCEPTED
+      - IN_PROGRESS
+      - REPORT_SUBMITTED
+      - COMPLETED
+      - CANCELLED
+      type: string
+      description: |-
+        * `AWAITING_INSPECTOR` - بانتظار إسناد المراقب
+        * `INSPECTOR_ASSIGNED` - تم إسناد المراقب
+        * `INSPECTOR_ACCEPTED` - قبل المراقب المهمة
+        * `IN_PROGRESS` - قيد التوثيق
+        * `REPORT_SUBMITTED` - تم إرسال التقرير
+        * `COMPLETED` - مكتملة
+        * `CANCELLED` - ملغاة
     IdentifierTokenObtainPair:
       type: object
       properties:
@@ -203,6 +447,96 @@ components:
       required:
       - identifier
       - password
+    InspectorAssignment:
+      type: object
+      properties:
+        assignment_id:
+          type: string
+          format: uuid
+          readOnly: true
+        handover_id:
+          type: string
+          format: uuid
+          readOnly: true
+        inspector_id:
+          type: string
+          format: uuid
+          readOnly: true
+        assigned_by_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/InspectorAssignmentStatusEnum'
+          readOnly: true
+        is_current:
+          type: boolean
+          readOnly: true
+        exception_reason:
+          type: string
+          readOnly: true
+        assigned_at:
+          type: string
+          format: date-time
+          readOnly: true
+        accepted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        report_submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - accepted_at
+      - assigned_at
+      - assigned_by_id
+      - assignment_id
+      - exception_reason
+      - handover_id
+      - inspector_id
+      - is_current
+      - report_submitted_at
+      - status
+    InspectorAssignmentStatusEnum:
+      enum:
+      - ASSIGNED
+      - ACCEPTED
+      - REJECTED
+      - IN_PROGRESS
+      - REPORT_SUBMITTED
+      - EXPIRED
+      - REASSIGNMENT_REQUIRED
+      - CANCELLED
+      type: string
+      description: |-
+        * `ASSIGNED` - مسندة
+        * `ACCEPTED` - مقبولة
+        * `REJECTED` - مرفوضة بسبب تعارض أو تعذر
+        * `IN_PROGRESS` - قيد التنفيذ
+        * `REPORT_SUBMITTED` - تم إرسال التقرير
+        * `EXPIRED` - منتهية
+        * `REASSIGNMENT_REQUIRED` - تحتاج إعادة إسناد
+        * `CANCELLED` - ملغاة
+    PointTypeEnum:
+      enum:
+      - FARMER_TO_DRIVER
+      - FARMER_TO_TRADER
+      - DRIVER_TO_WAREHOUSE
+      - WAREHOUSE_TO_DRIVER
+      - WAREHOUSE_TO_TRADER
+      - DRIVER_TO_TRADER
+      type: string
+      description: |-
+        * `FARMER_TO_DRIVER` - من المزارع إلى السائق
+        * `FARMER_TO_TRADER` - من المزارع إلى التاجر
+        * `DRIVER_TO_WAREHOUSE` - من السائق إلى المستودع
+        * `WAREHOUSE_TO_DRIVER` - من المستودع إلى السائق
+        * `WAREHOUSE_TO_TRADER` - من المستودع إلى التاجر
+        * `DRIVER_TO_TRADER` - من السائق إلى التاجر
     Register:
       type: object
       properties:
@@ -266,6 +600,8 @@ components:
     RoleEnum:
       enum:
       - ADMIN
+      - OPERATIONS_STAFF
+      - AUDITOR
       - QUALITY_MANAGER
       - DELIVERY_MANAGER
       - WAREHOUSE_MANAGER
@@ -277,6 +613,8 @@ components:
       type: string
       description: |-
         * `ADMIN` - Administrator
+        * `OPERATIONS_STAFF` - Operations Staff
+        * `AUDITOR` - Auditor
         * `QUALITY_MANAGER` - Quality Manager
         * `DELIVERY_MANAGER` - Delivery Manager
         * `WAREHOUSE_MANAGER` - Warehouse Manager
@@ -285,6 +623,18 @@ components:
         * `TRADER` - Trader
         * `DRIVER` - Driver
         * `INSPECTOR` - Neutral Inspector
+    ToPartyTypeEnum:
+      enum:
+      - FARMER
+      - TRADER
+      - DRIVER
+      - WAREHOUSE
+      type: string
+      description: |-
+        * `FARMER` - المزارع
+        * `TRADER` - التاجر
+        * `DRIVER` - السائق
+        * `WAREHOUSE` - المستودع
     TokenRefresh:
       type: object
       properties:
